@@ -271,6 +271,48 @@ func TestAccQuickSightAnalysis_Definition_calculatedFields(t *testing.T) {
 	})
 }
 
+func TestAccQuickSightAnalysis_Definition_smallMultiplies(t *testing.T) {
+	ctx := acctest.Context(t)
+
+	var analysis quicksight.Analysis
+	resourceName := "aws_quicksight_analysis.test"
+	rName := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
+	rId := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(ctx, t)
+		},
+		ErrorCheck:               acctest.ErrorCheck(t, names.QuickSightServiceID),
+		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckAnalysisDestroy(ctx, false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAnalysisConfig_Definition_smallMultiplies(rId, rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAnalysisExists(ctx, resourceName, &analysis),
+					resource.TestCheckResourceAttr(resourceName, "analysis_id", rId),
+					resource.TestCheckResourceAttr(resourceName, names.AttrName, rName),
+					resource.TestCheckResourceAttr(resourceName, names.AttrStatus, quicksight.ResourceStatusCreationSuccessful),
+
+					resource.TestCheckResourceAttr(resourceName, "definition.0.sheets.0.visuals.0.line_chart_visual.0.chart_configuration.0.field_wells.0.line_chart_aggregated_field_wells.0.small_multiples.0.field_id", acctest.Ct3),
+					resource.TestCheckResourceAttr(resourceName, "definition.0.sheets.0.visuals.0.line_chart_visual.0.chart_configuration.0.small_multiples_options.0.max_visible_columns", "1"),
+					resource.TestCheckResourceAttr(resourceName, "definition.0.sheets.0.visuals.0.line_chart_visual.0.chart_configuration.0.small_multiples_options.0.max_visible_rows", "1"),
+					resource.TestCheckResourceAttr(resourceName, "definition.0.sheets.0.visuals.0.line_chart_visual.0.chart_configuration.0.small_multiples_options.0.x_axis.0.placement", "INSIDE"),
+					resource.TestCheckResourceAttr(resourceName, "definition.0.sheets.0.visuals.0.line_chart_visual.0.chart_configuration.0.small_multiples_options.0.x_axis.0.scale", "INDEPENDENT"),
+					resource.TestCheckResourceAttr(resourceName, "definition.0.sheets.0.visuals.0.line_chart_visual.0.chart_configuration.0.small_multiples_options.0.y_axis.0.placement", "OUTSIDE"),
+					resource.TestCheckResourceAttr(resourceName, "definition.0.sheets.0.visuals.0.line_chart_visual.0.chart_configuration.0.small_multiples_options.0.y_axis.0.scale", "SHARED"),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccCheckAnalysisDestroy(ctx context.Context, forceDelete bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := acctest.Provider.Meta().(*conns.AWSClient).QuickSightConn(ctx)
@@ -725,6 +767,91 @@ resource "aws_quicksight_analysis" "test" {
                     aggregation_function = "COUNT"
                   }
                 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+`, rId, rName))
+}
+
+func testAccAnalysisConfig_Definition_smallMultiplies(rId, rName string) string {
+	return acctest.ConfigCompose(
+		testAccAnalysisConfigBase(rId, rName),
+		fmt.Sprintf(`
+resource "aws_quicksight_analysis" "test" {
+  analysis_id = %[1]q
+  name        = %[2]q
+  definition {
+    data_set_identifiers_declarations {
+      data_set_arn = aws_quicksight_data_set.test.arn
+      identifier   = "1"
+    }
+    sheets {
+      title    = "Test"
+      sheet_id = "Test1"
+      visuals {
+        line_chart_visual {
+          visual_id = "LineChart"
+          title {
+            format_text {
+              plain_text = "Line Chart Test"
+            }
+          }
+          chart_configuration {
+            field_wells {
+              line_chart_aggregated_field_wells {
+                category {
+                  categorical_dimension_field {
+                    field_id = "1"
+                    column {
+                      data_set_identifier = "1"
+                      column_name         = "Column1"
+                    }
+                  }
+                }
+                values {
+                  categorical_measure_field {
+                    field_id = "2"
+                    column {
+                      data_set_identifier = "1"
+                      column_name         = "Column1"
+                    }
+                    aggregation_function = "COUNT"
+                  }
+                }
+                small_multiples {
+                  categorical_dimension_field {
+                    field_id = "3"
+                    column {
+                      data_set_identifier = "1"
+                      column_name         = "Column1"
+                    }
+                  }
+                }
+              }
+            }
+            small_multiples_options {
+              max_visible_columns = 1
+              max_visible_rows    = 1
+              panel_configuration {
+                title {
+                  font_configuration {
+                    font_decoration = "NONE"
+                    font_style      = "ITALIC"
+                  }
+                }
+              }
+              x_axis {
+                placement = "INSIDE"
+                scale = "INDEPENDENT"
+              }
+              y_axis {
+                placement = "OUTSIDE"
+                scale = "SHARED"
               }
             }
           }
