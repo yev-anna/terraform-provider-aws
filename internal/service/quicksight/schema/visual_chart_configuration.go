@@ -376,6 +376,21 @@ func referenceLineSchema(maxItems int) *schema.Schema {
 	}
 }
 
+func smallMultiplesAxisPropertiesSchema() *schema.Schema {
+	return &schema.Schema{ // https://docs.aws.amazon.com/quicksight/latest/APIReference/API_SmallMultiplesAxisProperties.html
+		Type:     schema.TypeList,
+		MinItems: 1,
+		MaxItems: 1,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"placement": stringSchema(false, validation.StringInSlice(quicksight.SmallMultiplesAxisPlacement_Values(), false)),
+				"scale":     stringSchema(false, validation.StringInSlice(quicksight.SmallMultiplesAxisScale_Values(), false)),
+			},
+		},
+	}
+}
+
 func smallMultiplesOptionsSchema() *schema.Schema {
 	return &schema.Schema{ // https://docs.aws.amazon.com/quicksight/latest/APIReference/API_SmallMultiplesOptions.html
 		Type:     schema.TypeList,
@@ -394,6 +409,8 @@ func smallMultiplesOptionsSchema() *schema.Schema {
 					Optional:     true,
 					ValidateFunc: validation.IntBetween(1, 10),
 				},
+				"x_axis": smallMultiplesAxisPropertiesSchema(),
+				"y_axis": smallMultiplesAxisPropertiesSchema(),
 				"panel_configuration": { // https://docs.aws.amazon.com/quicksight/latest/APIReference/API_PanelConfiguration.html
 					Type:     schema.TypeList,
 					Optional: true,
@@ -1103,8 +1120,36 @@ func expandSmallMultiplesOptions(tfList []interface{}) *quicksight.SmallMultiple
 	if v, ok := tfMap["panel_configuration"].([]interface{}); ok && len(v) > 0 {
 		options.PanelConfiguration = expandPanelConfiguration(v)
 	}
+	if v, ok := tfMap["x_axis"].([]interface{}); ok && len(v) > 0 {
+		options.XAxis = expandSmallMultiplesAxisProperties(v)
+	}
+	if v, ok := tfMap["y_axis"].([]interface{}); ok && len(v) > 0 {
+		options.YAxis = expandSmallMultiplesAxisProperties(v)
+	}
 
 	return options
+}
+
+func expandSmallMultiplesAxisProperties(tfList []interface{}) *quicksight.SmallMultiplesAxisProperties {
+	if len(tfList) == 0 || tfList[0] == nil {
+		return nil
+	}
+
+	tfMap, ok := tfList[0].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	properties := &quicksight.SmallMultiplesAxisProperties{}
+
+	if v, ok := tfMap["placement"].(string); ok && v != "" {
+		properties.Placement = aws.String(v)
+	}
+	if v, ok := tfMap["scale"].(string); ok && v != "" {
+		properties.Scale = aws.String(v)
+	}
+
+	return properties
 }
 
 func expandPanelConfiguration(tfList []interface{}) *quicksight.PanelConfiguration {
